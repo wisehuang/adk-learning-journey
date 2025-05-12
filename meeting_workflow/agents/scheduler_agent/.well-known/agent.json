@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.1",
+  "name": "meeting_scheduler",
+  "display_name": "會議排程代理",
+  "description": "處理 Google Calendar 整合、會議排程與衝突解決",
+  "tags": ["calendar", "scheduling", "conflict-resolution"],
+  "agent_definition": {
+    "instructions": "處理會議排程、檢查參與者時間衝突並尋找替代時間選項",
+    "capabilities": [
+      {
+        "name": "schedule_meetings",
+        "description": "在 Google Calendar 上安排會議"
+      },
+      {
+        "name": "detect_conflicts",
+        "description": "偵測參與者時間衝突"
+      },
+      {
+        "name": "suggest_alternatives",
+        "description": "尋找並建議替代會議時間"
+      }
+    ],
+    "tools": [
+      {
+        "name": "schedule_meeting",
+        "description": "在 Google 日曆安排會議，處理時間衝突與參與者通知"
+      }
+    ]
+  },
+  "entry_point": {
+    "module": "meeting_workflow_adk",
+    "function": "schedule_meeting"
+  }
+} 

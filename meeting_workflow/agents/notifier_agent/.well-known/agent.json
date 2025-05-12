@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.1",
+  "name": "notification_sender",
+  "display_name": "會議通知代理",
+  "description": "生成並發送會議通知給參與者",
+  "tags": ["notification", "email", "communication"],
+  "agent_definition": {
+    "instructions": "生成清晰的會議通知並發送給所有參與者，處理會議更新和取消通知",
+    "capabilities": [
+      {
+        "name": "generate_notifications",
+        "description": "生成格式化的會議通知內容"
+      },
+      {
+        "name": "send_notifications",
+        "description": "發送會議邀請給參與者"
+      },
+      {
+        "name": "update_notifications",
+        "description": "處理會議變更和取消的通知"
+      }
+    ],
+    "tools": [
+      {
+        "name": "send_meeting_notification",
+        "description": "發送會議邀請和更新通知"
+      }
+    ]
+  },
+  "entry_point": {
+    "module": "meeting_workflow_adk",
+    "function": "send_notification"
+  }
+} 

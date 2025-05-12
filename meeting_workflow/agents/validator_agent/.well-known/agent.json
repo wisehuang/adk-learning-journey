@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "name": "attendee_validator",
+  "display_name": "參與者驗證代理",
+  "description": "驗證會議參與者的電子郵件格式與權限",
+  "tags": ["validation", "email", "attendees"],
+  "agent_definition": {
+    "instructions": "檢查參與者電子郵件格式，確保所有參與者地址有效",
+    "capabilities": [
+      {
+        "name": "validate_emails",
+        "description": "驗證電子郵件格式是否符合標準"
+      }
+    ],
+    "tools": [
+      {
+        "name": "validate_attendees",
+        "description": "驗證參與者郵件格式與權限"
+      }
+    ]
+  },
+  "entry_point": {
+    "module": "meeting_workflow_adk",
+    "function": "validate_attendees"
+  }
+} 
