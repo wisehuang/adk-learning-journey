@@ -1,142 +1,142 @@
-# Google ADK 會議排程多代理系統
+# Google ADK Meeting Scheduling Multi-Agent System
 
-使用 Google Agent Development Kit (ADK) 實現的多代理會議排程系統，通過 Google Calendar API 自動處理會議排程、衝突解決和參與者通知。
+A multi-agent meeting scheduling system implemented using Google Agent Development Kit (ADK), automatically handling meeting scheduling, conflict resolution, and attendee notifications through Google Calendar API.
 
-## 系統架構
+## System Architecture
 
-本專案採用 Google ADK 多代理架構，將會議排程拆分為多個專責代理協作完成：
+This project adopts Google ADK's multi-agent architecture, dividing meeting scheduling into multiple specialized agents working together:
 
-- **驗證代理 (Validator Agent)**: 負責驗證參與者電子郵件格式
-- **排程代理 (Scheduler Agent)**: 處理 Google Calendar 整合與衝突解決
-- **通知代理 (Notifier Agent)**: 生成並發送會議通知給參與者
+- **Validator Agent**: Responsible for validating attendee email formats
+- **Scheduler Agent**: Handles Google Calendar integration and conflict resolution
+- **Notifier Agent**: Generates and sends meeting notifications to participants
 
-各代理透過 ADK 的 SequentialAgent 進行協作，形成完整的處理流程。
+These agents collaborate through ADK's SequentialAgent to form a complete workflow.
 
-## 功能特點
+## Features
 
-- 📅 Google Calendar API 整合
-- 🔍 智能衝突偵測與解決
-- 🔄 自動尋找替代時間選項
-- ✉️ 自動通知所有會議參與者
-- 🤖 基於 Gemini 的多代理協作
+- 📅 Google Calendar API integration
+- 🔍 Intelligent conflict detection and resolution
+- 🔄 Automatic alternative time suggestions
+- ✉️ Automated notifications to all meeting participants
+- 🤖 Gemini-based multi-agent collaboration
 
-## 安裝與配置
+## Installation and Configuration
 
-### 環境需求
+### Requirements
 
 - Python 3.8+
-- [Google Cloud 專案](https://console.cloud.google.com/)，啟用 Calendar API
-- Google ADK 授權
+- [Google Cloud Project](https://console.cloud.google.com/) with Calendar API enabled
+- Google ADK authorization
 
-### 安裝步驟
+### Installation Steps
 
-1. 克隆此倉庫：
+1. Clone this repository:
 ```bash
 git clone <repository-url>
 cd meeting_workflow
 ```
 
-2. 安裝相依套件：
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Google Cloud 設定：
-   - 創建專案並啟用 Calendar API
-   - 設定 OAuth 同意畫面
-   - 創建 OAuth 客戶端憑證 (桌面應用)
-   - 下載 `credentials.json` 到專案根目錄
+3. Google Cloud Setup:
+   - Create a project and enable Calendar API
+   - Configure OAuth consent screen
+   - Create OAuth client credentials (Desktop application)
+   - Download `credentials.json` to the project root directory
 
-## 使用方式
+## Usage
 
-### 命令行使用
+### Command Line Usage
 
 ```bash
-python meeting_workflow_adk.py --summary "產品會議" --time "2023-08-01T14:00:00" --duration 60 --attendees "alice@example.com,bob@example.com" --description "產品開發會議"
+python meeting_workflow_adk.py --summary "Product Meeting" --time "2023-08-01T14:00:00" --duration 60 --attendees "alice@example.com,bob@example.com" --description "Product development meeting"
 ```
 
-或直接執行進行範例演示：
+Or run for a demonstration with example parameters:
 
 ```bash
 python meeting_workflow_adk.py
 ```
 
-### 網頁界面
+### Web Interface
 
-啟動 Streamlit 網頁界面：
+Launch the Streamlit web interface:
 
 ```bash
 streamlit run streamlit_app.py
 ```
 
-然後在瀏覽器中開啟顯示的 URL (通常為 http://localhost:8501)
+Then open the displayed URL in your browser (typically http://localhost:8501)
 
-## 專案結構
+## Project Structure
 
 ```
 meeting_workflow/
-├── meeting_workflow_adk.py  # 主要 ADK 實現
-├── streamlit_app.py         # 網頁界面
-├── common/                  # 共用工具
-│   └── google_auth.py       # Google 認證功能
-├── requirements.txt         # 相依套件
-└── README.md                # 專案說明
+├── meeting_workflow_adk.py  # Main ADK implementation
+├── streamlit_app.py         # Web interface
+├── common/                  # Shared utilities
+│   └── google_auth.py       # Google authentication functionality
+├── requirements.txt         # Dependencies
+└── README.md                # Project documentation
 ```
 
-## ADK 代理設計
+## ADK Agent Design
 
-本專案使用 Google ADK 的多代理協作功能，設計如下：
+This project uses Google ADK's multi-agent collaboration features, designed as follows:
 
 ```python
-# 驗證代理
+# Validator agent
 validate_agent = Agent(
     name="attendee_validator",
     model="gemini-pro",
     tools=[ValidateAttendeesTool()],
-    instruction="驗證會議參與者郵件格式"
+    instruction="Validate meeting participant email formats"
 )
 
-# 排程代理
+# Scheduler agent
 scheduling_agent = Agent(
     name="meeting_scheduler", 
     model="gemini-pro",
     tools=[ScheduleMeetingTool()],
-    instruction="處理會議排程與衝突解決"
+    instruction="Handle meeting scheduling and conflict resolution"
 )
 
-# 通知代理
+# Notifier agent
 notification_agent = Agent(
     name="notification_sender",
     model="gemini-pro",
-    instruction="生成會議通知內容並發送"
+    instruction="Generate meeting notification content and send"
 )
 
-# 主要工作流
+# Main workflow
 meeting_workflow = SequentialAgent(
     name="meeting_workflow",
     sub_agents=[validate_agent, scheduling_agent, notification_agent],
-    instruction="完整會議排程流程"
+    instruction="Complete meeting scheduling workflow"
 )
 ```
 
-## 錯誤處理
+## Error Handling
 
-系統設計了全面的錯誤處理機制，包括：
+The system has comprehensive error handling mechanisms, including:
 
-- 郵件格式驗證錯誤
-- Google Calendar API 錯誤
-- 會議時間衝突
-- 網絡連接問題
+- Email format validation errors
+- Google Calendar API errors
+- Meeting time conflicts
+- Network connection issues
 
-## 擴展功能
+## Extensible Features
 
-專案可進一步擴展：
+The project can be further extended:
 
-- 跨時區支援
-- 會議室預約整合
-- 更多日曆同步選項
-- 自然語言輸入 (如："下週一下午排一個小時的產品會議")
+- Cross-timezone support
+- Meeting room reservation integration
+- More calendar synchronization options
+- Natural language input (e.g.: "Schedule a one-hour product meeting next Monday afternoon")
 
-## 授權
+## License
 
 MIT License 

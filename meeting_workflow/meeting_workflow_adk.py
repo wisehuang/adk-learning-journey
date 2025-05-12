@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Meeting Workflow ADK Implementation
-使用 Google ADK 框架的會議排程多代理系統
+Multi-agent meeting scheduling system using Google ADK framework
 """
 
 import os
@@ -10,26 +10,26 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
-# Google ADK 核心導入
+# Google ADK core imports
 from google.adk.tools import BaseTool
 from google.adk.agents import Agent, SequentialAgent
 
-# 日曆 API 相關導入
+# Calendar API related imports
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-# 配置日誌
+# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Google Calendar API 的範圍
+# Google Calendar API scopes
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 def get_calendar_service():
-    """取得已授權的 Google Calendar 服務"""
+    """Get authorized Google Calendar service"""
     creds = None
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
@@ -47,16 +47,16 @@ def get_calendar_service():
     
     return build('calendar', 'v3', credentials=creds)
 
-# 定義 ADK 工具 - 驗證參與者工具
+# Define ADK Tool - Attendee Validator Tool
 class ValidateAttendeesTool(BaseTool):
     def __init__(self):
         super().__init__(
             name="validate_attendees",
-            description="驗證參與者郵件格式與權限"
+            description="Validate attendee email formats and permissions"
         )
     
     def execute(self, context, attendees: list):
-        """驗證參與者電子郵件格式"""
+        """Validate attendee email formats"""
         invalid_emails = []
         for email in attendees:
             if '@' not in email or '.' not in email:
@@ -66,58 +66,109 @@ class ValidateAttendeesTool(BaseTool):
             return {"valid": False, "invalid_emails": invalid_emails}
         return {"valid": True}
 
-# 定義 ADK 工具 - 排程會議工具
+# Define ADK Tool - Meeting Scheduler Tool
 class ScheduleMeetingTool(BaseTool):
     def __init__(self):
         super().__init__(
             name="schedule_meeting",
-            description="在 Google 日曆安排會議，處理時間衝突與參與者通知"
+            description="Schedule meetings in Google Calendar, handle conflicts and attendee notifications"
         )
     
     def execute(self, context, summary: str, start_time: str, 
                duration_min: int, attendees: list, description: str = None):
-        """排程會議並處理時間衝突"""
+        """Schedule meetings and handle conflicts"""
         try:
-            # 初始化日曆服務
+            # Initialize calendar service
             service = get_calendar_service()
             
-            # 時間格式轉換
-            start = datetime.fromisoformat(start_time)
+            # Time format conversion
+            try:
+                # Try to parse the provided time
+                start = datetime.fromisoformat(start_time)
+            except ValueError as e:
+                logger.warning(f"Invalid start time format: {start_time}. Using default.")
+                # Default to tomorrow at 2 PM
+                start = datetime.now() + timedelta(days=1)
+                start = start.replace(hour=14, minute=0, second=0, microsecond=0)
+            
             end = start + timedelta(minutes=duration_min)
             
-            # 建立事件結構
+            # Create event structure
             event = {
-                'summary': summary,
-                'start': {'dateTime': start.isoformat(), 'timeZone': 'Asia/Taipei'},
-                'end': {'dateTime': end.isoformat(), 'timeZone': 'Asia/Taipei'},
-                'attendees': [{'email': email} for email in attendees]
+                'summary': summary or "Untitled Meeting",
+                'start': {
+                    'dateTime': start.strftime('%Y-%m-%dT%H:%M:%S'),
+                    'timeZone': 'Asia/Taipei'
+                },
+                'end': {
+                    'dateTime': end.strftime('%Y-%m-%dT%H:%M:%S'),
+                    'timeZone': 'Asia/Taipei'
+                }
             }
+            
+            # Ensure valid attendees
+            valid_attendees = []
+            for email in attendees:
+                if '@' in email and '.' in email:
+                    valid_attendees.append({'email': email})
+            
+            if valid_attendees:
+                event['attendees'] = valid_attendees
             
             if description:
                 event['description'] = description
             
-            # 檢查衝突
-            freebusy = service.freebusy().query(body={
-                "timeMin": start.isoformat(),
-                "timeMax": end.isoformat(),
-                "items": [{"id": email} for email in attendees]
-            }).execute()
-            
-            # 處理衝突
-            conflicts = []
-            for attendee, data in freebusy.get('calendars', {}).items():
-                if data.get('busy', []):
-                    conflicts.append(attendee)
+            # Check for conflicts
+            try:
+                # Ensure emails are valid and properly formatted for API
+                calendar_items = []
+                for email in attendees:
+                    if '@' in email and '.' in email:
+                        calendar_items.append({"id": email})
+                
+                if not calendar_items:
+                    # If no valid emails, skip conflict check
+                    logger.warning("No valid emails for conflict check")
+                    conflicts = []
+                else:
+                    # Ensure timezone information is included
+                    start_str = start.strftime('%Y-%m-%dT%H:%M:%S%z')
+                    end_str = end.strftime('%Y-%m-%dT%H:%M:%S%z')
+                    
+                    # If no timezone info, add Z for UTC
+                    if '+' not in start_str and '-' not in start_str:
+                        start_str = start.strftime('%Y-%m-%dT%H:%M:%S') + 'Z'
+                        end_str = end.strftime('%Y-%m-%dT%H:%M:%S') + 'Z'
+                    
+                    freebusy = service.freebusy().query(body={
+                        "timeMin": start_str,
+                        "timeMax": end_str,
+                        "items": calendar_items,
+                        "timeZone": "Asia/Taipei"
+                    }).execute()
+                    
+                    # Handle conflicts
+                    conflicts = []
+                    for attendee, data in freebusy.get('calendars', {}).items():
+                        if data.get('busy', []):
+                            conflicts.append(attendee)
+            except HttpError as error:
+                logger.error(f"Calendar API error in conflict check: {error}")
+                # Continue with empty conflicts list on error
+                conflicts = []
+            except Exception as e:
+                logger.error(f"Unexpected error in conflict check: {e}")
+                conflicts = []
             
             if conflicts:
                 alternative_times = self._find_alternative_times(service, start, duration_min, attendees)
                 return {
                     "status": "conflict",
-                    "message": f"參與者 {', '.join(conflicts)} 時間衝突",
+                    "message": f"Attendees with conflicts: {', '.join(conflicts)}",
                     "suggestions": alternative_times
                 }
             
-            # 建立事件
+            # Create event
             created_event = service.events().insert(
                 calendarId='primary', 
                 body=event,
@@ -127,31 +178,52 @@ class ScheduleMeetingTool(BaseTool):
             return {
                 "status": "success", 
                 "event_id": created_event['id'],
-                "message": "會議已排程並發送通知"
+                "message": "Meeting has been scheduled and notifications sent"
             }
             
         except HttpError as error:
             logger.error(f"Calendar API error: {error}")
-            return {"status": "error", "message": f"API 錯誤: {str(error)}"}
+            return {"status": "error", "message": f"API Error: {str(error)}"}
         except Exception as e:
             logger.error(f"Unexpected error: {e}")
-            return {"status": "error", "message": f"未預期錯誤: {str(e)}"}
+            return {"status": "error", "message": f"Unexpected error: {str(e)}"}
     
     def _find_alternative_times(self, service, original_start, duration, attendees):
-        """智慧尋找替代時間選項"""
+        """Intelligently find alternative time options"""
         alternatives = []
         current = original_start
         end_range = original_start + timedelta(days=3)
         
+        # Ensure attendees are valid
+        calendar_items = []
+        for email in attendees:
+            if '@' in email and '.' in email:
+                calendar_items.append({"id": email})
+        
+        if not calendar_items:
+            # If no valid emails, return empty alternatives
+            logger.warning("No valid emails for alternative time check")
+            return alternatives
+        
         while current < end_range and len(alternatives) < 5:
-            # 僅在工作時間內搜尋
+            # Only search during working hours
             if 9 <= current.hour < 18 and current.weekday() < 5:
                 end_time = current + timedelta(minutes=duration)
                 try:
+                    # Ensure timezone information is included
+                    start_str = current.strftime('%Y-%m-%dT%H:%M:%S%z')
+                    end_str = end_time.strftime('%Y-%m-%dT%H:%M:%S%z')
+                    
+                    # If no timezone info, add Z for UTC
+                    if '+' not in start_str and '-' not in start_str:
+                        start_str = current.strftime('%Y-%m-%dT%H:%M:%S') + 'Z'
+                        end_str = end_time.strftime('%Y-%m-%dT%H:%M:%S') + 'Z'
+                    
                     freebusy = service.freebusy().query(body={
-                        "timeMin": current.isoformat(),
-                        "timeMax": end_time.isoformat(),
-                        "items": [{"id": email} for email in attendees]
+                        "timeMin": start_str,
+                        "timeMax": end_str,
+                        "items": calendar_items,
+                        "timeZone": "Asia/Taipei"
                     }).execute()
                     
                     all_available = True
@@ -162,38 +234,48 @@ class ScheduleMeetingTool(BaseTool):
                     
                     if all_available:
                         alternatives.append(current.isoformat())
-                except Exception:
-                    pass
+                except HttpError as error:
+                    logger.warning(f"API error while checking alternative time: {error}")
+                except Exception as e:
+                    logger.warning(f"Error during alternative time check: {e}")
             
-            current += timedelta(minutes=30)
+            current += timedelta(minutes=30)  # Check every 30 minutes
         
         return alternatives
 
-# 定義 ADK 工具 - 會議通知工具
+# Define ADK Tool - Meeting Notification Tool
 class SendMeetingNotificationTool(BaseTool):
     def __init__(self):
         super().__init__(
             name="send_meeting_notification",
-            description="生成並發送會議通知給所有參與者"
+            description="Generate and send meeting notifications to all attendees"
         )
     
     def execute(self, context, event_id: str, summary: str, start_time: str, 
                 duration_min: int, attendees: list, description: str = None, 
                 is_update: bool = False, is_cancellation: bool = False):
-        """生成並發送會議通知"""
+        """Generate and send meeting notifications"""
         try:
-            # 組織時間資訊
-            start = datetime.fromisoformat(start_time)
+            # Organize time information
+            try:
+                # Try to parse the provided time
+                start = datetime.fromisoformat(start_time)
+            except ValueError as e:
+                logger.warning(f"Invalid start time format: {start_time}. Using default.")
+                # Default to tomorrow at 2 PM
+                start = datetime.now() + timedelta(days=1)
+                start = start.replace(hour=14, minute=0, second=0, microsecond=0)
+                
             end = start + timedelta(minutes=duration_min)
             
-            # 確定通知類型
-            notification_type = "會議邀請"
+            # Determine notification type
+            notification_type = "Meeting Invitation"
             if is_update:
-                notification_type = "會議更新"
+                notification_type = "Meeting Update"
             elif is_cancellation:
-                notification_type = "會議取消"
+                notification_type = "Meeting Cancellation"
             
-            # 生成通知內容
+            # Generate notification content
             notification = self._generate_notification(
                 notification_type=notification_type,
                 summary=summary,
@@ -202,14 +284,14 @@ class SendMeetingNotificationTool(BaseTool):
                 description=description
             )
             
-            # 在實際應用中，這裡會連接到電子郵件服務或其他通知系統
-            # 此處僅模擬發送通知
-            logger.info(f"發送 {notification_type} 給 {', '.join(attendees)}")
-            logger.info(f"通知內容:\n{notification}")
+            # In a real implementation, this would connect to an email service or other notification system
+            # This is just simulating notification sending
+            logger.info(f"Sending {notification_type} to {', '.join(attendees)}")
+            logger.info(f"Notification content:\n{notification}")
             
-            # 如果與 Google Calendar API 整合，可以調用以下代碼
+            # If integrated with Google Calendar API, you could call the following code
             if not is_cancellation and not is_update:
-                # 這部分在 schedule_meeting 工具裡已經完成，此處僅示範
+                # This part is already handled in the schedule_meeting tool, this is just for demonstration
                 """
                 service = get_calendar_service()
                 service.events().insert(
@@ -222,62 +304,62 @@ class SendMeetingNotificationTool(BaseTool):
             
             return {
                 "status": "success",
-                "message": f"{notification_type}已發送給所有參與者",
+                "message": f"{notification_type} has been sent to all attendees",
                 "recipients": attendees,
                 "event_id": event_id
             }
             
         except Exception as e:
-            logger.error(f"發送通知錯誤: {e}")
+            logger.error(f"Notification sending error: {e}")
             return {
                 "status": "error",
-                "message": f"發送通知失敗: {str(e)}"
+                "message": f"Failed to send notification: {str(e)}"
             }
     
     def _generate_notification(self, notification_type, summary, start, end, description=None):
-        """產生格式化的通知內容"""
+        """Generate formatted notification content"""
         template = f"""
         {notification_type}
         ===================
         
-        主題: {summary}
-        時間: {start.strftime('%Y-%m-%d %H:%M')} - {end.strftime('%H:%M')}
-        地點: Google Meet (連結將在會議開始前發送)
+        Subject: {summary}
+        Time: {start.strftime('%Y-%m-%d %H:%M')} - {end.strftime('%H:%M')}
+        Location: Google Meet (link will be sent before the meeting)
         
-        {description or '無說明'}
+        {description or 'No description provided'}
         
-        請確認您的出席狀態。
+        Please confirm your attendance status.
         """
         return template
 
-# 定義代理
+# Define agents
 def create_agents():
-    """創建多代理系統"""
-    # 驗證代理
+    """Create multi-agent system"""
+    # Validator agent
     validate_agent = Agent(
         name="attendee_validator",
         model="gemini-pro",
         tools=[ValidateAttendeesTool()],
-        instruction="驗證會議參與者郵件格式，確保所有參與者郵件地址符合標準格式"
+        instruction="Validate meeting attendee email formats, ensure all addresses follow standard format"
     )
     
-    # 排程代理
+    # Scheduler agent
     scheduling_agent = Agent(
         name="meeting_scheduler", 
         model="gemini-pro",
         tools=[ScheduleMeetingTool()],
-        instruction="處理會議排程與衝突解決，找出最適合的會議時間"
+        instruction="Handle meeting scheduling and conflict resolution, find optimal meeting times"
     )
     
-    # 通知代理
+    # Notification agent
     notification_agent = Agent(
         name="notification_sender",
         model="gemini-pro",
         tools=[SendMeetingNotificationTool()],
-        instruction="生成會議通知內容並發送給參與者，確保所有訊息清晰易懂"
+        instruction="Generate meeting notification content and send to participants, ensure all messages are clear"
     )
     
-    # 使用 SequentialAgent 組裝流程
+    # Use SequentialAgent to assemble workflow
     meeting_workflow = SequentialAgent(
         name="meeting_workflow",
         sub_agents=[
@@ -290,14 +372,14 @@ def create_agents():
     return meeting_workflow
 
 def process_meeting_request(context):
-    """處理會議請求"""
+    """Process meeting request"""
     workflow = create_agents()
     
     # Call the agents individually since SequentialAgent doesn't have a run method
     # Step 1: Validate attendees
     attendees = extract_attendees(context["query"])
     validator = workflow.sub_agents[0]
-    validation_input = f"驗證這些參與者: {', '.join(attendees)}"
+    validation_input = f"Validate these attendees: {', '.join(attendees)}"
     
     # Use the tool directly instead of going through the agent
     validation_tool = ValidateAttendeesTool()
@@ -306,7 +388,7 @@ def process_meeting_request(context):
     if not validation_result.get("valid", False):
         return {
             "status": "error",
-            "message": "參與者郵件格式驗證失敗",
+            "message": "Attendee email validation failed",
             "details": validation_result
         }
     
@@ -315,7 +397,7 @@ def process_meeting_request(context):
     scheduler_tool = ScheduleMeetingTool()
     scheduling_result = scheduler_tool.execute(
         {},
-        summary=meeting_details.get("summary", "會議"),
+        summary=meeting_details.get("summary", "Meeting"),
         start_time=meeting_details.get("start_time", ""),
         duration_min=meeting_details.get("duration_min", 60),
         attendees=attendees,
@@ -330,7 +412,7 @@ def process_meeting_request(context):
     notification_result = notifier_tool.execute(
         {},
         event_id=scheduling_result.get("event_id", "unknown"),
-        summary=meeting_details.get("summary", "會議"),
+        summary=meeting_details.get("summary", "Meeting"),
         start_time=meeting_details.get("start_time", ""),
         duration_min=meeting_details.get("duration_min", 60),
         attendees=attendees,
@@ -339,7 +421,7 @@ def process_meeting_request(context):
     
     return {
         "status": "success",
-        "message": "會議已排程並發送通知",
+        "message": "Meeting has been scheduled and notifications sent",
         "details": {
             "validation": validation_result,
             "scheduling": scheduling_result,
@@ -348,7 +430,7 @@ def process_meeting_request(context):
     }
 
 def extract_meeting_details(query):
-    """從查詢中提取會議詳細信息"""
+    """Extract meeting details from query"""
     details = {
         "summary": "",
         "start_time": "",
@@ -356,71 +438,109 @@ def extract_meeting_details(query):
         "description": ""
     }
     
+    # Default to tomorrow at 2 PM
+    tomorrow = datetime.now() + timedelta(days=1)
+    tomorrow = tomorrow.replace(hour=14, minute=0, second=0, microsecond=0)
+    details["start_time"] = tomorrow.isoformat()
+    
     lines = query.split('\n')
     for line in lines:
         line = line.strip()
-        if '主題' in line and ':' in line:
+        if ('subject' in line.lower() or 'topic' in line.lower() or 'title' in line.lower()) and ':' in line:
             details["summary"] = line.split(':', 1)[1].strip()
-        elif '時間' in line and ':' in line:
-            details["start_time"] = line.split(':', 1)[1].strip()
-        elif '時長' in line and ':' in line:
+        elif 'time' in line.lower() and ':' in line:
+            time_text = line.split(':', 1)[1].strip()
+            # Try different formats
+            if 'T' in time_text:  # ISO format with T separator
+                try:
+                    datetime.fromisoformat(time_text)
+                    details["start_time"] = time_text
+                except ValueError:
+                    pass
+            elif '-' in time_text and ':' in time_text:
+                # Try to parse date-time format like "2023-05-15 14:00"
+                try:
+                    dt = datetime.strptime(time_text, "%Y-%m-%d %H:%M")
+                    details["start_time"] = dt.isoformat()
+                except ValueError:
+                    try:
+                        # Try with seconds
+                        dt = datetime.strptime(time_text, "%Y-%m-%d %H:%M:%S")
+                        details["start_time"] = dt.isoformat()
+                    except ValueError:
+                        pass
+        elif ('duration' in line.lower() or 'length' in line.lower()) and ':' in line:
             duration_text = line.split(':', 1)[1].strip()
             try:
-                details["duration_min"] = int(duration_text.split('分鐘')[0].strip())
+                # Extract the numeric part
+                import re
+                duration_match = re.search(r'\d+', duration_text)
+                if duration_match:
+                    details["duration_min"] = int(duration_match.group())
             except ValueError:
                 pass
-        elif '描述' in line and ':' in line:
+        elif ('description' in line.lower() or 'notes' in line.lower()) and ':' in line:
             details["description"] = line.split(':', 1)[1].strip()
+    
+    # Final validation of start_time
+    try:
+        # Try to parse it to confirm it's valid
+        datetime.fromisoformat(details["start_time"])
+    except ValueError:
+        # If still invalid, reset to default
+        tomorrow = datetime.now() + timedelta(days=1)
+        tomorrow = tomorrow.replace(hour=14, minute=0, second=0, microsecond=0)
+        details["start_time"] = tomorrow.isoformat()
     
     return details
 
 def extract_attendees(query):
-    """從查詢中提取參與者郵件地址"""
+    """Extract attendee email addresses from query"""
     lines = query.split('\n')
     for line in lines:
-        if '參與者' in line and ':' in line:
-            # 提取冒號後的部分，按逗號分割
+        if ('attendees' in line.lower() or 'participants' in line.lower()) and ':' in line:
+            # Extract the part after the colon, split by comma
             attendees_part = line.split(':', 1)[1].strip()
             return [email.strip() for email in attendees_part.split(',')]
     return []
 
-# 主程式範例
+# Example main program
 if __name__ == "__main__":
-    # 解析輸入參數
+    # Parse input parameters
     import argparse
-    parser = argparse.ArgumentParser(description='ADK 會議排程系統')
-    parser.add_argument('--summary', type=str, help='會議主題')
-    parser.add_argument('--time', type=str, help='開始時間 (ISO 格式)')
-    parser.add_argument('--duration', type=int, default=60, help='會議時長 (分鐘)')
-    parser.add_argument('--attendees', type=str, help='參與者 (以逗號分隔)')
-    parser.add_argument('--description', type=str, help='會議描述')
+    parser = argparse.ArgumentParser(description='ADK Meeting Scheduling System')
+    parser.add_argument('--summary', type=str, help='Meeting subject')
+    parser.add_argument('--time', type=str, help='Start time (ISO format)')
+    parser.add_argument('--duration', type=int, default=60, help='Meeting duration (minutes)')
+    parser.add_argument('--attendees', type=str, help='Attendees (comma separated)')
+    parser.add_argument('--description', type=str, help='Meeting description')
     args = parser.parse_args()
     
-    # 如果沒有提供命令行參數，使用範例參數
+    # If command line parameters are not provided, use example parameters
     if not all([args.summary, args.time, args.attendees]):
-        print("使用範例參數...")
-        # 明天下午2點
+        print("Using example parameters...")
+        # Tomorrow at 2 PM
         tomorrow = datetime.now() + timedelta(days=1)
         tomorrow = tomorrow.replace(hour=14, minute=0, second=0, microsecond=0)
         
         context = {
-            "query": f"""安排會議：
-            主題：產品開發會議
-            時間：{tomorrow.isoformat()}
-            時長：60分鐘
-            參與者：alice@example.com, bob@example.com
-            描述：討論下一季產品開發計劃"""
+            "query": f"""Schedule meeting:
+            Subject: Product Development Meeting
+            Time: {tomorrow.isoformat()}
+            Duration: 60 minutes
+            Attendees: alice@example.com, bob@example.com
+            Description: Discuss next quarter product development plans"""
         }
     else:
         context = {
-            "query": f"""安排會議：
-            主題：{args.summary}
-            時間：{args.time}
-            時長：{args.duration}分鐘
-            參與者：{args.attendees}
-            描述：{args.description or '無'}"""
+            "query": f"""Schedule meeting:
+            Subject: {args.summary}
+            Time: {args.time}
+            Duration: {args.duration} minutes
+            Attendees: {args.attendees}
+            Description: {args.description or 'None'}"""
         }
     
-    # 處理會議請求
+    # Process meeting request
     result = process_meeting_request(context)
     print(json.dumps(result, indent=2, ensure_ascii=False)) 

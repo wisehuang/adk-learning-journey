@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Meeting Workflow ADK - Streamlit Web Interface
-會議排程系統的網頁界面
+Web interface for the meeting scheduling system
 """
 
 import streamlit as st
@@ -9,118 +9,118 @@ import datetime
 import json
 from meeting_workflow_adk import process_meeting_request
 
-# 設置頁面
+# Page configuration
 st.set_page_config(
-    page_title="ADK 會議排程系統",
+    page_title="ADK Meeting Scheduling System",
     page_icon="📅",
     layout="wide"
 )
 
-# 頁面標題
-st.title("🤖 Google ADK 會議排程系統")
-st.markdown("使用多代理協作安排會議、處理衝突並發送通知")
+# Page title
+st.title("🤖 Google ADK Meeting Scheduling System")
+st.markdown("Use multi-agent collaboration to schedule meetings, resolve conflicts, and send notifications")
 
-# 側邊欄 - 介紹與說明
+# Sidebar - Introduction and instructions
 with st.sidebar:
-    st.header("👋 歡迎使用")
+    st.header("👋 Welcome")
     st.markdown("""
-    這個系統使用 Google ADK (Agent Development Kit) 架構構建，
-    包含多個專責代理協作處理會議排程流程：
+    This system is built with Google ADK (Agent Development Kit) architecture,
+    comprising multiple specialized agents collaborating to handle the meeting scheduling process:
     
-    1. **驗證代理** - 確認參與者電子郵件格式
-    2. **排程代理** - 處理 Google Calendar 整合與衝突解決
-    3. **通知代理** - 生成並發送會議通知
+    1. **Validator Agent** - Verifies attendee email formats
+    2. **Scheduler Agent** - Handles Google Calendar integration and conflict resolution
+    3. **Notifier Agent** - Generates and sends meeting notifications
     
-    請於右側填寫會議資訊進行排程。
+    Please enter meeting information on the right to schedule.
     """)
     
     st.markdown("---")
     st.markdown("Powered by Google ADK and Gemini")
 
-# 主要表單
+# Main form
 with st.form("meeting_form"):
-    st.subheader("會議資訊")
+    st.subheader("Meeting Information")
     
-    # 會議主題
-    summary = st.text_input("會議主題", "產品開發討論")
+    # Meeting subject
+    summary = st.text_input("Meeting Subject", "Product Development Discussion")
     
-    # 會議日期與時間
+    # Meeting date and time
     col1, col2 = st.columns(2)
     with col1:
-        meeting_date = st.date_input("會議日期", datetime.datetime.now() + datetime.timedelta(days=1))
+        meeting_date = st.date_input("Meeting Date", datetime.datetime.now() + datetime.timedelta(days=1))
     with col2:
-        meeting_time = st.time_input("會議時間", datetime.time(14, 0))
+        meeting_time = st.time_input("Meeting Time", datetime.time(14, 0))
     
-    # 組合日期與時間
+    # Combine date and time
     meeting_datetime = datetime.datetime.combine(meeting_date, meeting_time)
     
-    # 會議時長
-    duration = st.slider("會議時長 (分鐘)", 15, 180, 60, step=15)
+    # Meeting duration
+    duration = st.slider("Duration (minutes)", 15, 180, 60, step=15)
     
-    # 參與者
+    # Attendees
     attendees = st.text_area(
-        "參與者電子郵件 (每行一個)",
+        "Attendee Emails (one per line)",
         "alice@example.com\nbob@example.com"
     )
     
-    # 會議描述
-    description = st.text_area("會議描述", "討論下一季產品開發計劃與進度追蹤")
+    # Meeting description
+    description = st.text_area("Meeting Description", "Discuss next quarter product development plans and progress tracking")
     
-    # 提交按鈕
-    submit_button = st.form_submit_button("排程會議")
+    # Submit button
+    submit_button = st.form_submit_button("Schedule Meeting")
 
-# 處理表單提交
+# Handle form submission
 if submit_button:
-    with st.spinner("正在處理會議排程..."):
-        # 準備參與者列表
+    with st.spinner("Processing meeting scheduling..."):
+        # Prepare attendee list
         attendee_list = [email.strip() for email in attendees.split("\n") if email.strip()]
         
-        # 創建查詢內容
-        query = f"""安排會議：
-        主題：{summary}
-        時間：{meeting_datetime.isoformat()}
-        時長：{duration}分鐘
-        參與者：{', '.join(attendee_list)}
-        描述：{description}
+        # Create query content
+        query = f"""Schedule meeting:
+        Subject: {summary}
+        Time: {meeting_datetime.isoformat()}
+        Duration: {duration} minutes
+        Attendees: {', '.join(attendee_list)}
+        Description: {description}
         """
         
-        # 處理請求
+        # Process request
         context = {"query": query}
         try:
             result = process_meeting_request(context)
             
-            # 處理結果顯示
+            # Display results
             if result.get("status") == "success":
-                st.success("✅ 會議排程成功！")
+                st.success("✅ Meeting scheduled successfully!")
                 st.json(result)
                 
             elif result.get("status") == "conflict":
-                st.warning("⚠️ 發現時間衝突")
+                st.warning("⚠️ Time conflicts detected")
                 st.write(result.get("message", ""))
                 
-                # 顯示替代時間選項
+                # Show alternative time options
                 if result.get("suggestions"):
-                    st.subheader("可選替代時間")
+                    st.subheader("Available Alternative Times")
                     for i, alt_time in enumerate(result.get("suggestions", [])):
                         dt = datetime.datetime.fromisoformat(alt_time)
                         st.write(f"{i+1}. {dt.strftime('%Y-%m-%d %H:%M')} ({dt.strftime('%A')})")
                     
-                    st.info("請選擇替代時間並重新提交")
+                    st.info("Please select an alternative time and resubmit")
                 
             else:
-                st.error("❌ 排程失敗")
-                st.write(result.get("message", "未知錯誤"))
+                st.error("❌ Scheduling failed")
+                st.write(result.get("message", "Unknown error"))
                 
         except Exception as e:
-            st.error(f"處理過程中發生錯誤: {str(e)}")
+            st.error(f"Error during processing: {str(e)}")
 
-# 展示當前進程
+# Show current process
 st.markdown("---")
-st.subheader("系統進程")
+st.subheader("System Process")
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.info("驗證代理 ➡️ 檢查參與者資料")
+    st.info("Validator Agent ➡️ Check attendee data")
 with col2:
-    st.info("排程代理 ➡️ 與日曆 API 整合")
+    st.info("Scheduler Agent ➡️ Calendar API integration")
 with col3:
-    st.info("通知代理 ➡️ 準備並發送通知") 
+    st.info("Notifier Agent ➡️ Prepare and send notifications") 

@@ -1,29 +1,29 @@
 {
   "schema_version": "0.1",
   "name": "meeting_scheduler",
-  "display_name": "會議排程代理",
-  "description": "處理 Google Calendar 整合、會議排程與衝突解決",
+  "display_name": "Meeting Scheduler Agent",
+  "description": "Handles Google Calendar integration, meeting scheduling, and conflict resolution",
   "tags": ["calendar", "scheduling", "conflict-resolution"],
   "agent_definition": {
-    "instructions": "處理會議排程、檢查參與者時間衝突並尋找替代時間選項",
+    "instructions": "Handle meeting scheduling, check attendee time conflicts, and find alternative time options",
     "capabilities": [
       {
         "name": "schedule_meetings",
-        "description": "在 Google Calendar 上安排會議"
+        "description": "Schedule meetings on Google Calendar"
       },
       {
         "name": "detect_conflicts",
-        "description": "偵測參與者時間衝突"
+        "description": "Detect attendee time conflicts"
       },
       {
         "name": "suggest_alternatives",
-        "description": "尋找並建議替代會議時間"
+        "description": "Find and suggest alternative meeting times"
       }
     ],
     "tools": [
       {
         "name": "schedule_meeting",
-        "description": "在 Google 日曆安排會議，處理時間衝突與參與者通知"
+        "description": "Schedule meetings in Google Calendar, handle conflicts and attendee notifications"
       }
     ]
   },

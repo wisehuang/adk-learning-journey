@@ -1,37 +1,37 @@
 {
   "schema_version": "0.1",
   "name": "meeting_workflow",
-  "display_name": "會議排程工作流",
-  "description": "排程會議、處理衝突並通知參與者的多步驟工作流",
+  "display_name": "Meeting Scheduling Workflow",
+  "description": "Multi-step workflow for scheduling meetings, resolving conflicts, and notifying participants",
   "tags": ["meeting", "calendar", "scheduling", "workflow"],
   "agent_definition": {
-    "instructions": "協調驗證、排程、通知等子代理，完成會議排程的完整流程",
+    "instructions": "Coordinate validator, scheduler, notifier sub-agents to complete the meeting scheduling process",
     "capabilities": [
       {
         "name": "schedule_meeting",
-        "description": "安排新的會議並處理所有相關步驟"
+        "description": "Schedule new meetings and handle all related steps"
       },
       {
         "name": "resolve_conflicts",
-        "description": "處理參與者時間衝突並尋找替代方案"
+        "description": "Handle participant time conflicts and find alternatives"
       },
       {
         "name": "send_notifications",
-        "description": "發送會議邀請和更新通知"
+        "description": "Send meeting invitations and update notifications"
       }
     ],
     "agents": [
       {
         "name": "attendee_validator",
-        "description": "驗證參與者郵件格式與權限"
+        "description": "Validate attendee email formats and permissions"
       },
       {
         "name": "meeting_scheduler",
-        "description": "與 Google Calendar 整合並處理時間衝突"
+        "description": "Integrate with Google Calendar and handle time conflicts"
       },
       {
         "name": "notification_sender",
-        "description": "生成並發送會議通知"
+        "description": "Generate and send meeting notifications"
       }
     ]
   },
