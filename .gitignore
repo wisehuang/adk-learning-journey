@@ -278,3 +278,16 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+multi_agent_pm/.env
+**/.env
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/env/
+**/venv/
+**/.idea/
+**/.vscode/
+**/*.log
+
