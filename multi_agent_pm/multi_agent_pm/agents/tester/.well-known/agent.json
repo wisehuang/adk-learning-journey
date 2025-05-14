@@ -1,0 +1,198 @@
+{
+  "name": "Tester",
+  "description": "Tester agent responsible for validating tasks and reporting test results",
+  "version": "1.0.0",
+  "agent_protocol_version": "1.0.0",
+  "capabilities": [
+    {
+      "name": "list_completed_tasks",
+      "description": "List all tasks with COMPLETED status",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "priority": {
+                  "type": "string"
+                },
+                "task_type": {
+                  "type": "string"
+                },
+                "assigned_to": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "list_my_tasks",
+      "description": "List all tasks assigned to this tester",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "priority": {
+                  "type": "string"
+                },
+                "task_type": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "test_task",
+      "description": "Start testing a completed task",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "The ID of the task to test"
+          }
+        },
+        "required": ["task_id"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "The status of the operation"
+          },
+          "message": {
+            "type": "string",
+            "description": "A message describing the result of the operation"
+          }
+        }
+      }
+    },
+    {
+      "name": "submit_test_results",
+      "description": "Submit test results for a task",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "The ID of the task to submit results for"
+          },
+          "passed": {
+            "type": "boolean",
+            "description": "Whether the test passed or failed"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional: Notes on the test results"
+          }
+        },
+        "required": ["task_id", "passed"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "The status of the operation"
+          },
+          "message": {
+            "type": "string",
+            "description": "A message describing the result of the operation"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_status",
+      "description": "Get the current status of this tester",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the tester"
+          },
+          "current_tasks": {
+            "type": "integer",
+            "description": "Number of current tasks"
+          },
+          "max_capacity": {
+            "type": "integer",
+            "description": "Maximum capacity of tasks"
+          },
+          "load_percentage": {
+            "type": "number",
+            "description": "Percentage of capacity currently used"
+          },
+          "testing_tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "rest",
+    "base_url": "/api/agents/tester"
+  }
+} 
