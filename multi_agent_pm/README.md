@@ -79,6 +79,8 @@ The system will interpret these commands, extract the relevant parameters, and r
 multi_agent_pm/
 ├── __init__.py
 ├── __main__.py         # Entry point for running as a module
+├── main.py             # Main system implementation
+├── common.py           # Shared data models and utilities
 ├── ai/                 # Natural language processing with Gemini
 │   ├── __init__.py
 │   ├── agent_nlp_handler.py
@@ -100,11 +102,10 @@ multi_agent_pm/
 │       ├── agent.py
 │       └── .well-known/
 │           └── agent.json
-├── common.py           # Shared data models and utilities
-├── main.py             # Main system implementation
-└── workflow/           # Workflow coordination
-    ├── __init__.py
-    └── coordinator.py
+├── workflow/           # Workflow coordination
+│   ├── __init__.py
+│   └── coordinator.py
+└── requirements.txt    # Project dependencies
 ```
 
 ## Installation
