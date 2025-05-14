@@ -39,7 +39,7 @@ class GeminiClient:
             
         # Configure the Gemini API
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-2.5-pro-preview-05-06')
         self.enabled = True
         logger.info("Gemini client initialized successfully")
         

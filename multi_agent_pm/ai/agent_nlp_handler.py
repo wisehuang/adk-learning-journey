@@ -192,6 +192,16 @@ class AgentNLPHandler:
                 )
             }
             
+        # For list_tasks, we need to create a ListTasksRequest
+        elif method_name == "api_list_tasks":
+            from ..agents.manager.agent import ListTasksRequest
+            
+            return {
+                "request": ListTasksRequest(
+                    status=params.get("status")
+                )
+            }
+            
         # For review_task, we need the task_id and approve flag
         elif method_name == "api_review_task":
             from ..agents.manager.agent import ReviewTaskRequest
@@ -205,6 +215,12 @@ class AgentNLPHandler:
                     approve=params.get("approve", True),
                     comment=params.get("comment")
                 )
+            }
+            
+        # For get_agent_status, we need an empty dict
+        elif method_name == "api_get_agent_status":
+            return {
+                "request": {}
             }
             
         # For all other methods, just pass the parameters directly

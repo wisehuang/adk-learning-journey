@@ -178,6 +178,7 @@ async def process_command(coordinator: WorkflowCoordinator, command: str) -> Dic
     # Determine which agent should handle the command
     agent_type = "manager"  # Default to manager
     agent = coordinator.manager
+    agent_name = "ProjectManager"  # Default agent name
     
     # Try to determine the agent type based on command content
     command_lower = command.lower()
@@ -191,13 +192,13 @@ async def process_command(coordinator: WorkflowCoordinator, command: str) -> Dic
         agent_type = "engineer"
         # Default to first engineer for now
         agent = coordinator.engineers[0] if coordinator.engineers else None
-        agent_name = f"Engineer1"
+        agent_name = "Engineer1"
     
     elif any(cmd in command_lower for cmd in ["completed tasks", "test task", "submit test", "tester status"]):
         agent_type = "tester"
         # Default to first tester for now
         agent = coordinator.testers[0] if coordinator.testers else None
-        agent_name = f"Tester1"
+        agent_name = "Tester1"
     
     logger.info(f"Routing command to {agent_name} ({agent_type})")
     
@@ -305,6 +306,33 @@ def run_system() -> None:
         logger.info("Agent system shut down. API servers still running in background.")
 
 
+def cli_loop(coordinator: WorkflowCoordinator):
+    """Run a command-line interface loop for interacting with the system.
+    
+    Args:
+        coordinator: The workflow coordinator instance.
+    """
+    print("Multi-Agent Project Management CLI. Type 'exit' to quit.")
+    while True:
+        command = input(">>> ")
+        if command.strip().lower() in {"exit", "quit"}:
+            break
+        # Process the command
+        print(f"\nProcessing: '{command}'...")
+        try:
+            result = asyncio.run(process_command(coordinator, command))
+            
+            # Print the result
+            agent_name = result.get("agent", "System")
+            if "error" in result:
+                print(f"\n{agent_name}: Error - {result['error']}")
+            else:
+                print(f"\n{agent_name}: {result.get('result', 'Command processed')}")
+        except Exception as e:
+            print(f"\nError processing command: {str(e)}")
+
+
 if __name__ == "__main__":
     # Run the system
-    run_system() 
+    run_system()
+    # The CLI loop is already in run_system(), so we don't need to call it again 
