@@ -291,3 +291,6 @@ multi_agent_pm/.env
 **/.vscode/
 **/*.log
 
+# Credentials
+credentials.json
+token.json
