@@ -338,7 +338,7 @@ def create_agents():
     # Validator agent
     validate_agent = Agent(
         name="attendee_validator",
-        model="gemini-pro",
+        model="gemini-2.5-pro-preview-05-06",
         tools=[ValidateAttendeesTool()],
         instruction="Validate meeting attendee email formats, ensure all addresses follow standard format"
     )
@@ -346,7 +346,7 @@ def create_agents():
     # Scheduler agent
     scheduling_agent = Agent(
         name="meeting_scheduler", 
-        model="gemini-pro",
+        model="gemini-2.5-pro-preview-05-06",
         tools=[ScheduleMeetingTool()],
         instruction="Handle meeting scheduling and conflict resolution, find optimal meeting times"
     )
@@ -354,7 +354,7 @@ def create_agents():
     # Notification agent
     notification_agent = Agent(
         name="notification_sender",
-        model="gemini-pro",
+        model="gemini-2.5-pro-preview-05-06",
         tools=[SendMeetingNotificationTool()],
         instruction="Generate meeting notification content and send to participants, ensure all messages are clear"
     )

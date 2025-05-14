@@ -91,7 +91,7 @@ This project uses Google ADK's multi-agent collaboration features, designed as f
 # Validator agent
 validate_agent = Agent(
     name="attendee_validator",
-    model="gemini-pro",
+    model="gemini-2.5-pro-preview-05-06",
     tools=[ValidateAttendeesTool()],
     instruction="Validate meeting participant email formats"
 )
@@ -99,7 +99,7 @@ validate_agent = Agent(
 # Scheduler agent
 scheduling_agent = Agent(
     name="meeting_scheduler", 
-    model="gemini-pro",
+    model="gemini-2.5-pro-preview-05-06",
     tools=[ScheduleMeetingTool()],
     instruction="Handle meeting scheduling and conflict resolution"
 )
@@ -107,7 +107,7 @@ scheduling_agent = Agent(
 # Notifier agent
 notification_agent = Agent(
     name="notification_sender",
-    model="gemini-pro",
+    model="gemini-2.5-pro-preview-05-06",
     instruction="Generate meeting notification content and send"
 )
 
