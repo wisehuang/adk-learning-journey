@@ -28,24 +28,15 @@ logger = logging.getLogger(__name__)
 # Google Calendar API scopes
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
+# Get project ID from environment variable
+PROJECT_ID = os.getenv('GOOGLE_CLOUD_PROJECT')
+if not PROJECT_ID:
+    raise ValueError("GOOGLE_CLOUD_PROJECT environment variable must be set")
+
 def get_calendar_service():
     """Get authorized Google Calendar service"""
-    creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-    
-    return build('calendar', 'v3', credentials=creds)
+    from common.google_auth import get_calendar_service as get_service
+    return get_service(PROJECT_ID)
 
 # Define ADK Tool - Attendee Validator Tool
 class ValidateAttendeesTool(BaseTool):

@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environments
+.env
+.venv
+venv/
+env/
+
+# Credentials and Tokens
+credentials.json
+token.json
+
+# IDE / Editor specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Git
+.git
+.gitignore 
