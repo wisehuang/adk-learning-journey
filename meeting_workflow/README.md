@@ -19,16 +19,22 @@ These agents collaborate through ADK's SequentialAgent to form a complete workfl
 - 🔄 Automatic alternative time suggestions
 - ✉️ Automated notifications to all meeting participants
 - 🤖 Gemini-based multi-agent collaboration
+- 🐳 Containerized deployment with Docker
+- 🔐 Secure credential management with Google Cloud Secret Manager
 
 ## Installation and Configuration
 
 ### Requirements
 
-- Python 3.8+
-- [Google Cloud Project](https://console.cloud.google.com/) with Calendar API enabled
+- Python 3.12+
+- [Google Cloud Project](https://console.cloud.google.com/) with:
+  - Calendar API enabled
+  - Cloud Run API enabled
+  - Secret Manager API enabled
+  - Container Registry API enabled
 - Google ADK authorization
 
-### Installation Steps
+### Local Development Setup
 
 1. Clone this repository:
 ```bash
@@ -42,10 +48,40 @@ pip install -r requirements.txt
 ```
 
 3. Google Cloud Setup:
-   - Create a project and enable Calendar API
+   - Create a project and enable required APIs
    - Configure OAuth consent screen
    - Create OAuth client credentials (Desktop application)
    - Download `credentials.json` to the project root directory
+
+### Container Deployment
+
+1. Build and test the container locally:
+```bash
+# Build the container
+docker build -t meeting-scheduler .
+
+# Run the container locally
+docker run -p 8080:8080 meeting-scheduler
+```
+
+2. Deploy to Google Cloud Run:
+```bash
+gcloud run deploy meeting-workflow \
+  --source . \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated
+```
+
+3. Set up Google Cloud Secret Manager:
+```bash
+# Create secrets
+gcloud secrets create calendar-credentials --replication-policy="automatic"
+gcloud secrets create calendar-token --replication-policy="automatic"
+
+# Add credentials
+gcloud secrets versions add calendar-credentials --data-file="credentials.json"
+```
 
 ## Usage
 
@@ -71,16 +107,22 @@ streamlit run streamlit_app.py
 
 Then open the displayed URL in your browser (typically http://localhost:8501)
 
+### Cloud Run Deployment
+
+After deployment, access the application at the URL provided by Cloud Run.
+
 ## Project Structure
 
 ```
 meeting_workflow/
 ├── meeting_workflow_adk.py  # Main ADK implementation
 ├── streamlit_app.py         # Web interface
-├── common/                  # Shared utilities
-│   └── google_auth.py       # Google authentication functionality
-├── requirements.txt         # Dependencies
-└── README.md                # Project documentation
+├── Dockerfile              # Container configuration
+├── .dockerignore          # Docker build exclusions
+├── common/                 # Shared utilities
+│   └── google_auth.py      # Google authentication functionality
+├── requirements.txt        # Dependencies
+└── README.md              # Project documentation
 ```
 
 ## ADK Agent Design
@@ -119,6 +161,13 @@ meeting_workflow = SequentialAgent(
 )
 ```
 
+## Security Considerations
+
+- Credentials and tokens are stored in Google Cloud Secret Manager
+- Container runs with minimal permissions
+- Environment variables are used for configuration
+- Sensitive files are excluded from container builds
+
 ## Error Handling
 
 The system has comprehensive error handling mechanisms, including:
@@ -127,6 +176,8 @@ The system has comprehensive error handling mechanisms, including:
 - Google Calendar API errors
 - Meeting time conflicts
 - Network connection issues
+- Container deployment errors
+- Secret Manager access errors
 
 ## Extensible Features
 
@@ -136,6 +187,9 @@ The project can be further extended:
 - Meeting room reservation integration
 - More calendar synchronization options
 - Natural language input (e.g.: "Schedule a one-hour product meeting next Monday afternoon")
+- Additional Cloud Run configurations
+- Custom domain mapping
+- SSL/TLS configuration
 
 ## License
 
