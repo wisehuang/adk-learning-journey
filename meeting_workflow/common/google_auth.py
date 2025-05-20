@@ -43,7 +43,7 @@ def get_calendar_service(project_id: str) -> Optional[build]:
                 credentials_json = get_secret(project_id, "calendar-credentials")
                 flow = InstalledAppFlow.from_client_config(
                     json.loads(credentials_json), SCOPES)
-                creds = flow.run_local_server(port=0)
+            creds = flow.run_local_server(port=0)
             except Exception as e:
                 print(f"Error loading credentials from Secret Manager: {e}")
                 raise
